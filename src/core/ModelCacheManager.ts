@@ -4,10 +4,10 @@ module OX {
 
     export class ModelCacheManager {
         private modelsIns:Model[];
-        private context:AppContext;
+        private context:RequestContext;
         private _:any = require('underscore');
 
-        constructor(context:AppContext){
+        constructor(context:RequestContext){
             this.context = context;
             this.modelsIns = [];
         }
@@ -20,7 +20,7 @@ module OX {
                 return modelIns;
             }
 
-            var mClass = this.context.getModel(model);
+            var mClass = this.context.getAppContext().getModel(model);
             if(mClass != undefined) {
                 modelIns = new mClass();
                 modelIns.init(this.context);

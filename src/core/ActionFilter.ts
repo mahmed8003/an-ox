@@ -3,22 +3,20 @@
 module OX {
 
     export interface AFContext {
-        request: Request;
-        response: Response;
+        req: Request;
+        res: Response;
         next: () => void;
     }
 
     export class ActionFilter {
-        private context:AppContext;
-        private modelCacheMgr:ModelCacheManager;
+        private context:RequestContext;
 
-        public init(context:AppContext, modelCacheMgr:ModelCacheManager) {
+        public init(context:RequestContext) {
             this.context = context;
-            this.modelCacheMgr = modelCacheMgr;
         }
 
         public getModel(model:typeof Model):Model {
-            return this.modelCacheMgr.getModel(model);
+            return this.context.getModelCacheMgr().getModel(model);
         }
 
         before(context:AFContext): void {

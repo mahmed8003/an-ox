@@ -156,8 +156,8 @@ module OX {
 
             var self = this;
             this.express.use(function (req, res, next) {
-                var modelCacheMgr = new ModelCacheManager(self);
-                req._modelCacheMgr = modelCacheMgr;
+                var requestContext:RequestContext = new RequestContext(self);
+                req._requestContext = requestContext;
                 next();
             });
 
@@ -230,7 +230,7 @@ module OX {
 
                 var finalAction = function (req, res) {
                     var controllerObj = new controller();
-                    controllerObj.init(self, req._modelCacheMgr);
+                    controllerObj.init(req._requestContext);
                     controllerObj[action](req, res);
                 }
 
@@ -288,21 +288,21 @@ module OX {
             var self = this;
             var requestHandler = function (req:Request, res:Response, next:any) {
                 var ctx = {
-                    request: req,
-                    response: res,
+                    req: req,
+                    res: res,
                     next: next
                 };
                 // create object of filter type and call before function
                 var filterObj = new filterType();
-                var treq:any = req; // just fooling the editor, otherwise it starts to highlight _modelCacheMgr
-                filterObj.init(self, treq._modelCacheMgr);
+                var treq:any = req; // just fooling the editor,
+                filterObj.init(treq._requestContext);
                 filterObj.before(ctx);
 
                 var onFinished:any = require('on-finished');
                 onFinished(res, function (err) {
                     var ctx = {
-                        request: req,
-                        response: res,
+                        req: req,
+                        res: res,
                         next: null
                     };
                     filterObj.after(ctx);
@@ -322,13 +322,12 @@ module OX {
 
         private getRequestHandlersForAction(controller:typeof Controller, action:string):RequestHandler[] {
             var requestHandlers:RequestHandler[] = [];
-            var t = this.getRequestHandlersForFilterTypes(this.globalFiltersTypes);//this.getRequestHandlersForFilters(this.globalFilters);
+            var t = this.getRequestHandlersForFilterTypes(this.globalFiltersTypes);
             requestHandlers = requestHandlers.concat(t);
 
             var filterTypes = this.getFilterTypesForAction(controller, action);
             t = this.getRequestHandlersForFilterTypes(filterTypes);
-            requestHandlers.concat(t);
-
+            requestHandlers = requestHandlers.concat(t);
 
             requestHandlers = this._.flatten(requestHandlers);
 

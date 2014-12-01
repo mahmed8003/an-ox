@@ -3,9 +3,9 @@
 module OX {
 
     export class Model {
-        context:AppContext;
+        context:RequestContext;
 
-        public init(context:AppContext) {
+        public init(context:RequestContext) {
             this.context = context;
         }
 

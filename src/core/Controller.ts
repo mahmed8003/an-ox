@@ -5,6 +5,7 @@ module OX {
     export class CFilterInfo {
         public filterType:typeof ActionFilter;
         public actions:string[];
+        private _:any = require('underscore');
 
         public constructor() {
             this.actions = [];
@@ -21,12 +22,7 @@ module OX {
         }
 
         public contains(action:string):boolean {
-            this.actions.forEach((act) => {
-                if(action == act) {
-                    return true;
-                }
-            });
-            return false;
+            return this._.contains(this.actions, action);
         }
 
     }
@@ -34,7 +30,7 @@ module OX {
     export class Controller {
         static filtersInfo:CFilterInfo[] = [];
         static isConfigured:boolean = false;
-        private context:AppContext;
+        private context:RequestContext;
         private modelCacheMgr:ModelCacheManager;
 
         public static configure() {
@@ -47,13 +43,12 @@ module OX {
             return filterInfo;
         }
 
-        public init(context:AppContext, modelCacheMgr:ModelCacheManager) {
+        public init(context:RequestContext) {
             this.context = context;
-            this.modelCacheMgr = modelCacheMgr;
         }
 
         public getModel(model:typeof Model):Model {
-            return this.modelCacheMgr.getModel(model);
+            return this.context.getModelCacheMgr().getModel(model);
         }
     }
 }

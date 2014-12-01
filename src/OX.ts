@@ -10,6 +10,7 @@
 /// <reference path="./core/Model.ts" />
 /// <reference path="./core/ModelCacheManager.ts" />
 /// <reference path="./core/Request.ts" />
+/// <reference path="./core/RequestContext.ts" />
 /// <reference path="./core/Response.ts" />
 /// <reference path="./core/Router.ts" />
 /// <reference path="./core/WinstonLogger.ts" />
