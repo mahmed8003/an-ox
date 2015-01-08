@@ -1,6 +1,6 @@
 {
   "name": "an-ox",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "OX: A fullstack JavaScript framework powered by ExpressJS, NodeJS and Typescript",
   "private": false,
   "author": "Muhammad Ahmed <mahmed8003@gmail.com>",
