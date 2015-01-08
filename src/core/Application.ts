@@ -100,7 +100,7 @@ module OX {
             };
             this.uDatabaseConfig.config(cfg);
             this.dbInfo = cfg[this.env];
-            if(this.appInfo.enableDatabase) {
+            if (this.appInfo.enableDatabase) {
                 this.db = this.uDatabaseConfig.connect(this.dbInfo);
             }
         }
@@ -118,10 +118,8 @@ module OX {
             this.uLoggerConfig.config(cfg);
 
             var loggerInfo = cfg[this.env];
-            if(this.appInfo.enableLogger) {
-                var logger = new WinstonLogger();
-                logger.createLogger(loggerInfo);
-            }
+            var logger = new WinstonLogger();
+            logger.createLogger(loggerInfo);
         }
 
         private configureRoutes():void {
@@ -238,7 +236,7 @@ module OX {
             this.router.routes.forEach((route) => {
 
                 var filters:Array<typeof ActionFilter> = this.router.globalFilters;
-                filters = _.union(filters, route.filters);
+                filters = this._.union(filters, route.filters);
 
                 var controller:typeof Controller = route.controller;
 

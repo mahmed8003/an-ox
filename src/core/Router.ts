@@ -10,44 +10,51 @@ module OX {
         filters: Array<typeof ActionFilter>;
     }
 
+    export interface RouteInfo {
+        path:string;
+        controller:typeof Controller;
+        action:string;
+        filters?:Array<typeof ActionFilter>;
+    }
+
     export class Router {
         public routes:Route[] = [];
         public globalFilters:Array<typeof ActionFilter> = [];
         private _:any = require('underscore');
 
 
-        addGlobalFilters(filters:Array<typeof ActionFilter>):void {
-            this.globalFilters = _.union(this.globalFilters, filters);
+        public addGlobalFilters(filters:Array<typeof ActionFilter>):void {
+            this.globalFilters = this._.union(this.globalFilters, filters);
         }
 
-        get(path:string, controller:typeof Controller, action:string, filters:Array<typeof ActionFilter> = []):void {
-            this.map(path, controller, action, filters, ['GET']);
+        public get(routeInfo:RouteInfo):void {
+            this.map(routeInfo, ['GET']);
         }
 
-        post(path:string, controller:typeof Controller, action:string, filters:Array<typeof ActionFilter> = []):void {
-            this.map(path, controller, action, filters, ['POST']);
+        public post(routeInfo:RouteInfo):void {
+            this.map(routeInfo, ['POST']);
         }
 
-        put(path:string, controller:typeof Controller, action:string, filters:Array<typeof ActionFilter> = []):void {
-            this.map(path, controller, action, filters, ['PUT']);
+        public put(routeInfo:RouteInfo):void {
+            this.map(routeInfo, ['PUT']);
         }
 
-        delete(path:string, controller:typeof Controller, action:string, filters:Array<typeof ActionFilter> = []):void {
-            this.map(path, controller, action, filters, ['DELETE']);
+        public delete(routeInfo:RouteInfo):void {
+            this.map(routeInfo, ['DELETE']);
         }
 
-        all(path:string, controller:typeof Controller, action:string, filters:Array<typeof ActionFilter> = []):void {
-            this.map(path, controller, action, filters);
+        public all(routeInfo:RouteInfo):void {
+            this.map(routeInfo);
         }
 
-        map(path:string, controller:typeof Controller, action:string, filters:Array<typeof ActionFilter> = [], methods:string[] = ['GET', 'POST', 'PUT', 'DELETE']):void {
+        private map(routeInfo:RouteInfo, methods:string[] = ['GET', 'POST', 'PUT', 'DELETE']):void {
             methods.forEach((method) => {
                     var route:Route = {
                         method: method,
-                        path: path,
-                        controller: controller,
-                        action: action,
-                        filters: filters
+                        path: routeInfo.path,
+                        controller: routeInfo.controller,
+                        action: routeInfo.action,
+                        filters: routeInfo.filters || []
                     };
                     this.routes.push(route);
                 }
