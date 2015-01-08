@@ -2,7 +2,7 @@
 
 module OX {
 
-    export interface DBConfig {
+    export interface DBInfo {
         host: string;
         port: number;
         username: string;
@@ -17,15 +17,9 @@ module OX {
         maxConnections?: number;
     }
 
-    export interface EnvDBConfig {
-        development: DBConfig;
-        test: DBConfig;
-        production: DBConfig;
-    }
-
     export interface DatabaseConfig {
-        config(config:EnvDBConfig):boolean;
-        connect(config:DBConfig):any;
+        config(config:ConfigEnv<DBInfo>):void;
+        connect(info:DBInfo):any;
     }
 
 }

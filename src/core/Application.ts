@@ -1,13 +1,27 @@
 /// <reference path="../OX" />
 
+/*
+
+ String root;
+ dynamic host;
+ int port;
+ String env;
+ AppInfo appInfo;
+ DBInfo dbInfo;
+ LoggerInfo loggerInfo;
+ final Router router = new Router();
+ */
+
 module OX {
 
     export interface AppContext {
         root:string;
-        env:string;
         port:number;
-        dbConfig:DBConfig;
+        env:string;
+        appInfo:AppInfo;
+        dbInfo:DBInfo;
         db?:any;
+        router:Router;
         getModel(name:typeof Model): typeof Model;
     }
 
@@ -15,24 +29,24 @@ module OX {
 
         // app config
         root:string;
-        env:string;
         port:number;
-        dbConfig:DBConfig;
+        env:string;
+        appInfo:AppInfo;
+        dbInfo:DBInfo;
         db:any;
+        router:Router;
 
         //private stuff
-        private router:Router;
         private models:Array<typeof Model>;
-        private controllers:Array<typeof Controller>;
-        private globalFiltersTypes:Array<typeof ActionFilter>;
         private express;
 
         // u = User configurations
+        private uAppConfig:AppConfig;
         private uDatabaseConfig:DatabaseConfig;
         private uExpressConfig:ExpressConfig;
-        private uGlobalFiltersConfig:GlobalFiltersConfig;
-        private uRoutesConfig:RoutesConfig;
         private uLoggerConfig:LoggerConfig;
+        private uRoutesConfig:RoutesConfig;
+
 
         //
         private _:any = require('underscore');
@@ -46,12 +60,10 @@ module OX {
 
             this.router = new OX.Router();
             this.models = [];
-            this.controllers = [];
-            this.globalFiltersTypes = [];
         }
 
-        public setLoggerConfig(config:LoggerConfig):void {
-            this.uLoggerConfig = config;
+        public setAppConfig(config:AppConfig):void {
+            this.uAppConfig = config;
         }
 
         public setDatabaseConfig(config:DatabaseConfig):void {
@@ -62,15 +74,42 @@ module OX {
             this.uExpressConfig = config;
         }
 
-        public setGlobalFiltersConfig(config:GlobalFiltersConfig):void {
-            this.uGlobalFiltersConfig = config;
+        public setLoggerConfig(config:LoggerConfig):void {
+            this.uLoggerConfig = config;
         }
 
         public setRoutesConfig(config:RoutesConfig):void {
             this.uRoutesConfig = config;
         }
 
-        private configLogger():void {
+        private configureApp():void {
+            var cfg = {
+                development: null,
+                test: null,
+                production: null
+            };
+            this.uAppConfig.config(cfg);
+            this.appInfo = cfg[this.env];
+        }
+
+        private configureDatabase():void {
+            var cfg = {
+                development: null,
+                test: null,
+                production: null
+            };
+            this.uDatabaseConfig.config(cfg);
+            this.dbInfo = cfg[this.env];
+            if(this.appInfo.enableDatabase) {
+                this.db = this.uDatabaseConfig.connect(this.dbInfo);
+            }
+        }
+
+        private configureExpress():void {
+            this.uExpressConfig.config(this.express);
+        }
+
+        private configureLogger():void {
             var cfg = {
                 development: null,
                 test: null,
@@ -79,49 +118,31 @@ module OX {
             this.uLoggerConfig.config(cfg);
 
             var loggerInfo = cfg[this.env];
-            var logger = new WinstonLogger();
-            logger.createLogger(loggerInfo);
-        }
-
-        private configDatabase():void {
-            var cfg = {
-                development: null,
-                test: null,
-                production: null
-            };
-            var needToConnect:boolean = this.uDatabaseConfig.config(cfg);
-            this.dbConfig = cfg[this.env];
-            if (needToConnect) {
-                this.db = this.uDatabaseConfig.connect(this.dbConfig);
+            if(this.appInfo.enableLogger) {
+                var logger = new WinstonLogger();
+                logger.createLogger(loggerInfo);
             }
         }
 
-        private configModels():void {
+        private configureRoutes():void {
+            this.uRoutesConfig.config(this.router);
+        }
+
+        private configureModels():void {
             this.models.forEach((m) => {
                 m.configure();
             });
         }
 
-        private configExpress():void {
-            this.uExpressConfig.config(this.express);
-        }
-
-        private configGlobalFilters():void {
-            this.uGlobalFiltersConfig.config(this.globalFiltersTypes);
-        }
-
-        private configRoutes():void {
-            this.uRoutesConfig.config(this.router);
-        }
 
         public giddup() {
-            this.configLogger();
-            this.configDatabase();
-            this.configModels();
+            this.configureApp();
+            this.configureLogger();
+            this.configureDatabase();
+            this.configureModels();
+            this.configureRoutes();
             this.buildExpress();
-            this.configExpress();
-            this.configGlobalFilters();
-            this.configRoutes();
+            this.configureExpress();
             this.buildRoutes();
 
             var self = this;
@@ -216,23 +237,26 @@ module OX {
             var self = this;
             this.router.routes.forEach((route) => {
 
-                var controller:typeof Controller = route.routeData.controller;
+                var filters:Array<typeof ActionFilter> = this.router.globalFilters;
+                filters = _.union(filters, route.filters);
+
+                var controller:typeof Controller = route.controller;
+
                 if (!controller.isConfigured) {
                     controller.configure();
                     controller.isConfigured = true;
 
                 }
 
-
                 var method:string = route.method;
-                var action:string = route.routeData.action;
-                var handlers:any = this.getRequestHandlersForAction(controller, action);
+                var action:string = route.action;
+                var handlers:any = this.getRequestHandlersForFilterTypes(filters);
 
                 var finalAction = function (req, res) {
                     var controllerObj = new controller();
                     controllerObj.init(req._requestContext);
                     controllerObj[action](req, res);
-                }
+                };
 
                 if (method == 'GET') {
                     this.express.get(route.path, handlers, finalAction);
@@ -273,16 +297,6 @@ module OX {
             });
         }
 
-        private getFilterTypesForAction(controller:typeof Controller, action:string):Array<typeof ActionFilter> {
-            var filterTypes:Array<typeof ActionFilter> = [];
-            controller.filtersInfo.forEach((info) => {
-                if (info.contains(action)) {
-                    filterTypes.push(info.filterType);
-                }
-            });
-            return filterTypes;
-        }
-
 
         private getRequestHandlersForFilterType(filterType:typeof ActionFilter):RequestHandler {
             var self = this;
@@ -320,19 +334,6 @@ module OX {
             return requestHandlers;
         }
 
-        private getRequestHandlersForAction(controller:typeof Controller, action:string):RequestHandler[] {
-            var requestHandlers:RequestHandler[] = [];
-            var t = this.getRequestHandlersForFilterTypes(this.globalFiltersTypes);
-            requestHandlers = requestHandlers.concat(t);
-
-            var filterTypes = this.getFilterTypesForAction(controller, action);
-            t = this.getRequestHandlersForFilterTypes(filterTypes);
-            requestHandlers = requestHandlers.concat(t);
-
-            requestHandlers = this._.flatten(requestHandlers);
-
-            return requestHandlers;
-        }
     }
 
     export interface RequestHandler {
